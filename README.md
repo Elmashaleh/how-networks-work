@@ -4,7 +4,7 @@
 # ✉ HOW NETWORKS WORK
 ### *A message just left your device. Here's everything that has to go right before it arrives.*
 
-**[→ OPEN THE LIVE SITE](https://your-username.github.io/your-repo-name/)**
+**[→ OPEN THE LIVE SITE](https://Elmashaleh.github.io/how-networks-work/)**
 
 
 </div>
