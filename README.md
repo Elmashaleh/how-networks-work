@@ -5,7 +5,7 @@
 ### *A message just left your device. Here's everything that has to go right before it arrives.*
 
 **[→ OPEN THE LIVE SITE](https://your-username.github.io/your-repo-name/)**
-*(swap this link once GitHub Pages is live — see below)*
+
 
 </div>
 
