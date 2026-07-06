@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>How Networks Work — Motaz Elmashaleh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Serif+4:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3ead4;
+    --paper-2:#e9dbb8;
+    --card:#fbf5e6;
+    --ink:#242236;
+    --ink-dim:#6f6353;
+    --red:#a8352a;
+    --red-dim:rgba(168,53,42,0.12);
+    --gold:#a97f2a;
+    --gold-dim:rgba(169,127,42,0.16);
+    --line:rgba(36,34,54,0.16);
+    --line-strong:rgba(36,34,54,0.32);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  html,body{margin:0;background:var(--paper);background-color:var(--paper);min-height:100%;}
+  body{
+    color:var(--ink);
+    font-family:'Source Serif 4',serif;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--red-dim);color:var(--red);}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:'Courier Prime',monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  /* paper grain + airmail stripe trim */
+  .grain{
+    position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5;
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(168,53,42,0.05), transparent 45%),
+      radial-gradient(circle at 82% 70%, rgba(169,127,42,0.06), transparent 45%),
+      repeating-radial-gradient(circle at 0 0, transparent 0, rgba(36,34,54,0.015) 1px, transparent 2px);
+    background-size:auto,auto,3px 3px;
+  }
+  .airmail-trim{
+    height:10px;width:100%;
+    background:repeating-linear-gradient(-45deg, var(--red) 0 14px, var(--paper) 14px 22px, var(--ink) 22px 36px, var(--paper) 36px 44px);
+    position:relative;z-index:2;
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 32px;}
+
+  /* ---------- HEADER ---------- */
+  header.top{
+    padding:22px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+    max-width:1180px;margin:0 auto;font-family:'Courier Prime',monospace;
+    font-size:11.5px;letter-spacing:0.1em;color:var(--ink-dim);text-transform:uppercase;
+  }
+  header.top .brand{color:var(--red);font-weight:700;}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:50px 0 30px;position:relative;}
+  .stamp{
+    position:absolute;top:12px;right:32px;width:112px;height:140px;
+    background:
+      radial-gradient(circle 5px at 6px 0, transparent 5px, var(--card) 5px) top/22px 10px repeat-x,
+      radial-gradient(circle 5px at 6px 10px, transparent 5px, var(--card) 5px) bottom/22px 10px repeat-x,
+      radial-gradient(circle 5px at 0 6px, transparent 5px, var(--card) 5px) left/10px 22px repeat-y,
+      radial-gradient(circle 5px at 10px 6px, transparent 5px, var(--card) 5px) right/10px 22px repeat-y,
+      var(--card);
+    border:1px solid var(--line-strong);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    transform:rotate(4deg);box-shadow:0 12px 26px -12px rgba(36,34,54,0.35);
+  }
+  .stamp .fly{font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:0.14em;color:var(--red);text-transform:uppercase;}
+  .stamp .glyph{font-size:34px;color:var(--ink);font-family:'Fraunces',serif;}
+  .stamp .val{font-family:'Courier Prime',monospace;font-size:9px;color:var(--ink-dim);letter-spacing:0.08em;}
+  @media(max-width:640px){.stamp{display:none;}}
+
+  .hero-eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'Courier Prime',monospace;font-size:12px;color:var(--red);
+    letter-spacing:0.1em;text-transform:uppercase;margin-bottom:20px;
+  }
+  .hero-eyebrow::before{content:'✦';color:var(--gold);}
+  .hero h1{font-size:clamp(2.3rem,6vw,4.1rem);font-weight:600;line-height:1.05;max-width:16ch;}
+  .hero h1 em{font-style:italic;color:var(--red);font-weight:500;}
+  .hero p.sub{font-size:1.15rem;color:var(--ink-dim);max-width:56ch;margin-top:20px;}
+  .byline{
+    margin-top:28px;font-family:'Courier Prime',monospace;font-size:12px;color:var(--ink-dim);
+    letter-spacing:0.03em;border-top:1px dashed var(--line-strong);padding-top:14px;display:inline-block;
+  }
+  .byline b{color:var(--ink);}
+
+  /* ---------- POST OFFICE DEMO ---------- */
+  .demo-shell{
+    margin-top:46px;border:1.5px solid var(--line-strong);border-radius:4px;
+    background:var(--card);overflow:hidden;box-shadow:0 30px 70px -34px rgba(36,34,54,0.45);
+  }
+  .demo-titlebar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:16px 22px;border-bottom:1px dashed var(--line-strong);background:var(--paper-2);
+  }
+  .demo-titlebar h3{font-size:1.02rem;font-weight:600;color:var(--ink);font-family:'Fraunces',serif;}
+  .demo-titlebar .hint{font-family:'Courier Prime',monospace;font-size:11px;color:var(--ink-dim);}
+  .demo-controls{
+    display:flex;gap:10px;flex-wrap:wrap;padding:18px 22px;border-bottom:1px dashed var(--line-strong);
+    align-items:center;
+  }
+  .demo-controls input[type=text]{
+    flex:1;min-width:200px;background:var(--paper);border:1px solid var(--line-strong);
+    border-radius:2px;padding:11px 14px;color:var(--ink);font-family:'Courier Prime',monospace;
+    font-size:13px;outline:none;
+  }
+  .demo-controls input[type=text]:focus{border-color:var(--red);}
+  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-dim);white-space:nowrap;font-family:'Courier Prime',monospace;}
+  .checkbox-row input{accent-color:var(--red);width:15px;height:15px;}
+  button.send-btn{
+    background:var(--red);color:var(--card);border:none;border-radius:2px;
+    padding:11px 22px;font-family:'Courier Prime',monospace;font-weight:700;font-size:13px;
+    cursor:pointer;letter-spacing:0.03em;transition:transform .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+  }
+  button.send-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(168,53,42,0.55);}
+  button.send-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  .demo-stage{
+    position:relative;height:250px;margin:22px 22px 0;
+    background:
+      linear-gradient(90deg, transparent 0, transparent calc(50% - 0.5px), var(--line) calc(50% - 0.5px), var(--line) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+      var(--paper);
+    background-size:100% 100%, cover;
+    border:1px dashed var(--line-strong);border-radius:3px;overflow:hidden;
+  }
+  .node{
+    position:absolute;transform:translate(-50%,-50%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Courier Prime',monospace;font-size:10px;color:var(--ink-dim);text-align:center;
+  }
+  .node .dot{
+    width:15px;height:15px;border-radius:50%;background:var(--card);
+    border:1.5px dashed var(--line-strong);display:block;margin:0 auto 5px;
+  }
+  .node.endpoint .dot{width:20px;height:20px;border:2px solid var(--gold);background:var(--gold-dim);border-style:solid;}
+  .node.router.pulse .dot{animation:stationStamp .5s ease-out;}
+  @keyframes stationStamp{
+    0%{box-shadow:0 0 0 0 rgba(168,53,42,0.5);border-color:var(--red);}
+    100%{box-shadow:0 0 0 12px rgba(168,53,42,0);border-color:var(--line-strong);}
+  }
+  .packet{
+    position:absolute;transform:translate(-50%,-50%);
+    background:var(--ink);color:var(--card);font-family:'Courier Prime',monospace;
+    font-size:10px;font-weight:700;padding:3px 7px;border-radius:2px;
+    box-shadow:0 3px 10px rgba(36,34,54,0.35);white-space:nowrap;z-index:5;
+    transition:background .2s ease;
+  }
+  .packet.lost{background:var(--red);}
+  .packet.acked{background:var(--gold);color:var(--ink);}
+
+  .demo-log{
+    height:88px;overflow-y:auto;margin:16px 22px 0;padding:12px 14px;
+    background:var(--paper);border:1px dashed var(--line-strong);border-radius:3px;
+    font-family:'Courier Prime',monospace;font-size:11.5px;color:var(--ink-dim);
+  }
+  .demo-log div{padding:2px 0;}
+  .demo-log .ok{color:var(--gold);}
+  .demo-log .warn{color:var(--red);}
+  .demo-log .info{color:var(--ink-dim);font-style:italic;}
+
+  .demo-result{
+    margin:16px 22px 22px;min-height:64px;border:1.5px solid var(--line-strong);border-radius:3px;
+    background:var(--paper-2);padding:14px 18px;display:flex;align-items:center;gap:14px;
+    font-family:'Courier Prime',monospace;font-size:13px;color:var(--ink-dim);
+  }
+  .demo-result .stampmark{
+    flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:2px solid var(--red);
+    display:flex;align-items:center;justify-content:center;color:var(--red);font-size:9px;
+    font-weight:700;text-align:center;line-height:1.1;transform:scale(0) rotate(-20deg);opacity:0;
+    transition:transform .4s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  }
+  .demo-result.delivered .stampmark{transform:scale(1) rotate(-14deg);opacity:1;}
+  .demo-result .msg{color:var(--ink);}
+
+  /* ---------- ROUTE / STAMP RAIL + SECTIONS ---------- */
+  .route{
+    display:flex;gap:40px;align-items:flex-start;
+    padding:64px 0;border-top:1px dashed var(--line-strong);
+  }
+  .route:first-of-type{border-top:none;}
+  .route-rail{position:sticky;top:80px;display:flex;flex-direction:column;align-items:center;gap:10px;flex:0 0 52px;}
+  .route-num{
+    width:52px;height:52px;border-radius:50%;border:2px dashed var(--line-strong);
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;
+    font-size:15px;color:var(--ink-dim);background:var(--card);transition:all .4s cubic-bezier(.34,1.56,.64,1);
+    position:relative;
+  }
+  .route.active .route-num{border-color:var(--red);color:var(--red);transform:scale(1.08) rotate(-6deg);box-shadow:0 6px 16px -6px rgba(168,53,42,0.4);}
+  .route-thread{width:1px;flex:1;background:repeating-linear-gradient(var(--line-strong) 0 4px, transparent 4px 8px);min-height:50px;}
+
+  .route-body{flex:1;opacity:0;transform:translateY(16px);transition:opacity .6s ease, transform .6s ease;}
+  .route-body.visible{opacity:1;transform:translateY(0);}
+  .route-body .eyebrow{
+    font-family:'Courier Prime',monospace;font-size:11.5px;color:var(--gold);
+    letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;display:block;font-weight:700;
+  }
+  .route-body h2{font-size:clamp(1.5rem,3vw,2.15rem);margin-bottom:18px;font-weight:600;}
+  .route-body p{color:var(--ink-dim);font-size:1.05rem;margin:0 0 16px;}
+  .route-body p b{color:var(--ink);font-weight:600;}
+
+  .route-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:34px;align-items:start;width:100%;}
+  @media(max-width:900px){.route-grid{grid-template-columns:1fr;}}
+  .col-visual{width:100%;}
+
+  blockquote{
+    margin:22px 0 0;padding:16px 20px;border-left:3px solid var(--red);
+    background:var(--red-dim);border-radius:0 3px 3px 0;
+    font-family:'Fraunces',serif;font-style:italic;font-size:1.08rem;color:var(--ink);
+  }
+
+  .checklist{list-style:none;padding:0;margin:0;display:grid;gap:9px;}
+  .checklist li{
+    display:flex;gap:12px;align-items:flex-start;padding:12px 14px;
+    background:var(--card);border:1px solid var(--line);border-radius:3px;
+  }
+  .checklist li .n{font-family:'Courier Prime',monospace;color:var(--gold);font-size:12px;flex:0 0 auto;font-weight:700;}
+
+  .compare{display:grid;grid-template-columns:1fr;gap:12px;}
+  .compare .card{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:16px;}
+  .compare .card h4{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;color:var(--ink);margin:0 0 10px;}
+  .compare .card ul{margin:0;padding-left:18px;color:var(--ink-dim);font-size:0.94rem;}
+  .compare .card ul li{margin-bottom:6px;}
+
+  /* section 03: passport vs mailing label */
+  .addr-demo{width:100%;}
+  .addr-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:520px){.addr-cards{grid-template-columns:1fr;}}
+  .addr-card{
+    border-radius:4px;padding:16px;position:relative;overflow:hidden;transition:box-shadow .3s ease;
+  }
+  .addr-card.passport{
+    background:linear-gradient(160deg,#2c2a42,#1b1a2b);color:#efe6cf;border:1px solid var(--gold);
+  }
+  .addr-card.label{
+    background:var(--card);border:1.5px dashed var(--line-strong);
+  }
+  .addr-card .addr-label{display:flex;align-items:center;gap:8px;font-size:11.5px;margin-bottom:10px;font-family:'Courier Prime',monospace;}
+  .tag{font-family:'Courier Prime',monospace;font-size:9.5px;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
+  .tag.gold{background:rgba(201,166,74,0.22);color:#e6c877;}
+  .tag.red{background:var(--red-dim);color:var(--red);}
+  .addr-value{font-size:1.05rem;font-family:'Courier Prime',monospace;}
+  .addr-card.passport .addr-value{color:#f4e9c8;}
+  .addr-card.label .addr-value{color:var(--ink);}
+  .addr-card.flash{box-shadow:0 0 0 3px var(--red-dim);}
+  .addr-card.passport-flash{box-shadow:0 0 0 3px var(--gold-dim);}
+  .addr-demo button{
+    margin-top:14px;background:transparent;border:1.5px solid var(--line-strong);color:var(--ink);
+    padding:10px 16px;border-radius:2px;font-family:'Courier Prime',monospace;font-size:12px;
+    cursor:pointer;transition:border-color .2s ease,color .2s ease;
+  }
+  .addr-demo button:hover{border-color:var(--red);color:var(--red);}
+  .addr-log{margin-top:10px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--ink-dim);min-height:16px;}
+
+  .fig{border:1px solid var(--line);border-radius:4px;padding:22px;background:var(--card);width:100%;}
+
+  /* route map (section 04) — interactive */
+  .flight-map{position:relative;height:150px;}
+  .flight-map svg{width:100%;height:100%;position:absolute;inset:0;}
+  .flight-map .stop{position:absolute;transform:translate(-50%,-50%);text-align:center;font-family:'Courier Prime',monospace;font-size:9.5px;color:var(--ink-dim);z-index:2;}
+  .flight-map .stop .dot{width:9px;height:9px;border-radius:50%;background:var(--line-strong);margin:0 auto 5px;transition:all .2s ease;}
+  .flight-map .stop.start .dot,.flight-map .stop.end .dot{width:13px;height:13px;background:var(--gold);}
+  .flight-map .stop.pick{cursor:pointer;}
+  .flight-map .stop.pick .dot{border:2px solid var(--line-strong);background:var(--card);}
+  .flight-map .stop.pick:hover .dot{border-color:var(--red);transform:scale(1.15);}
+  .flight-map .stop.pick.chosen .dot{background:var(--red);border-color:var(--red);}
+  .flight-map .stop.pick .order{
+    position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+    background:var(--red);color:var(--card);font-size:9px;font-weight:700;
+    width:15px;height:15px;border-radius:50%;display:none;align-items:center;justify-content:center;
+  }
+  .flight-map .stop.pick.chosen .order{display:flex;}
+  .route-controls{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  .route-controls button{
+    background:var(--red);color:var(--card);border:none;border-radius:2px;padding:9px 16px;
+    font-family:'Courier Prime',monospace;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .route-controls button:disabled{opacity:0.35;cursor:not-allowed;}
+  .route-controls button.ghost{background:transparent;color:var(--ink-dim);border:1.5px solid var(--line-strong);}
+  .route-caption{margin-top:10px;font-family:'Courier Prime',monospace;font-size:11.5px;color:var(--ink-dim);min-height:16px;}
+  .route-letter{position:absolute;transform:translate(-50%,-50%);font-size:16px;z-index:3;transition:none;}
+
+  /* fragments (section 05) — flip cards */
+  .hint-text{font-family:'Courier Prime',monospace;font-size:12px;color:var(--gold);}
+  .fragments{display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;perspective:600px;}
+  .frag{width:104px;height:64px;cursor:pointer;}
+  .frag:nth-child(odd) .frag-inner{transform:rotate(-3deg);}
+  .frag:nth-child(even) .frag-inner{transform:rotate(2.5deg);}
+  .frag.flipped:nth-child(odd) .frag-inner{transform:rotate(-3deg) rotateY(180deg);}
+  .frag.flipped:nth-child(even) .frag-inner{transform:rotate(2.5deg) rotateY(180deg);}
+  .frag-inner{
+    position:relative;width:100%;height:100%;transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.4,.2,.2,1);
+  }
+  .frag-front,.frag-back{
+    position:absolute;inset:0;backface-visibility:hidden;
+    display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;
+    background:var(--card);border:1px solid var(--line-strong);
+    font-family:'Courier Prime',monospace;font-size:10.5px;color:var(--ink);
+    clip-path:polygon(0% 8%,8% 0%,22% 9%,36% 1%,50% 8%,64% 1%,78% 9%,92% 0%,100% 8%,100% 100%,0% 100%);
+    box-shadow:0 4px 10px rgba(36,34,54,0.15);
+  }
+  .frag-back{transform:rotateY(180deg);background:var(--gold-dim);font-family:'Fraunces',serif;font-weight:600;font-size:13px;color:var(--ink);}
+  .frag-result{margin-top:16px;font-family:'Fraunces',serif;font-style:italic;font-size:1.1rem;color:var(--ink-dim);min-height:24px;opacity:0;transition:opacity .5s ease;}
+  .frag-result.show{opacity:1;color:var(--red);}
+
+  .receipt-diagram{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .receipt-diagram .who{font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--ink);text-align:center;}
+  .receipt-diagram .arrows{flex:1;min-width:120px;text-align:center;color:var(--ink-dim);font-size:11px;font-family:'Courier Prime',monospace;}
+  .receipt-diagram .arrows .top{color:var(--red);}
+  .receipt-diagram .arrows .bottom{color:var(--gold);}
+
+  /* ---------- CLOSING / WAX SEAL ---------- */
+  .closing{padding:110px 0 90px;text-align:center;border-top:1px dashed var(--line-strong);position:relative;}
+  .closing .quote{
+    font-family:'Fraunces',serif;font-style:italic;font-weight:500;
+    font-size:clamp(1.5rem,3.6vw,2.3rem);max-width:22ch;margin:0 auto;line-height:1.35;color:var(--ink);
+  }
+  .closing .quote em{font-style:italic;color:var(--red);}
+  .closing .final{
+    margin-top:34px;font-family:'Courier Prime',monospace;color:var(--ink-dim);
+    font-size:0.95rem;max-width:46ch;margin-left:auto;margin-right:auto;
+  }
+  .seal{
+    margin:44px auto 0;width:78px;height:78px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #c24a3c, #7c2018 70%);
+    display:flex;align-items:center;justify-content:center;color:#f4e5c8;
+    font-family:'Fraunces',serif;font-weight:700;font-size:26px;cursor:pointer;
+    box-shadow:0 10px 26px -8px rgba(124,32,24,0.6), inset 0 2px 4px rgba(255,255,255,0.25), inset 0 -3px 6px rgba(0,0,0,0.35);
+    animation:sealPulse 2.6s ease-in-out infinite;
+  }
+  .seal.cracked{animation:sealCrack .5s ease-out forwards;}
+  @keyframes sealPulse{
+    0%,100%{transform:scale(1) rotate(-2deg);}
+    50%{transform:scale(1.05) rotate(2deg);}
+  }
+  @keyframes sealCrack{
+    0%{transform:scale(1) rotate(-2deg);}
+    35%{transform:scale(1.25) rotate(8deg);}
+    60%{transform:scale(0.85) rotate(-10deg);}
+    100%{transform:scale(0) rotate(30deg);opacity:0;}
+  }
+  .seal-hint{margin-top:12px;font-family:'Courier Prime',monospace;font-size:10.5px;color:var(--ink-dim);letter-spacing:0.1em;text-transform:uppercase;transition:opacity .3s ease;}
+  .seal-hint.hide{opacity:0;}
+
+  .certificate{
+    max-width:520px;margin:0 auto;opacity:0;transform:translateY(16px) scale(0.97);
+    max-height:0;overflow:hidden;transition:opacity .6s ease, transform .6s ease, max-height .6s ease;
+  }
+  .certificate.show{opacity:1;transform:translateY(0) scale(1);max-height:600px;margin-top:36px;}
+  .cert-inner{
+    position:relative;border:2px solid var(--gold);outline:1px solid var(--line-strong);outline-offset:6px;
+    border-radius:6px;background:var(--card);padding:36px 30px 26px;
+  }
+  .cert-ribbon-tail{position:absolute;top:-2px;width:26px;height:40px;background:var(--red);}
+  .cert-ribbon-tail.left{left:34px;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);}
+  .cert-ribbon-tail.right{right:34px;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);}
+  .cert-eyebrow{font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:0.12em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;}
+  .cert-name{
+    font-family:'Fraunces',serif;font-style:italic;font-weight:600;font-size:1.7rem;color:var(--ink);
+    border-bottom:1px dashed var(--line-strong);display:inline-block;padding-bottom:8px;margin-bottom:18px;
+    outline:none;cursor:text;min-width:60%;
+  }
+  .cert-name:focus{border-color:var(--red);}
+  .cert-body{font-family:'Source Serif 4',serif;font-size:0.98rem;color:var(--ink-dim);max-width:42ch;margin:0 auto 22px;line-height:1.6;}
+  .cert-footer{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-top:1px dashed var(--line-strong);padding-top:16px;}
+  .cert-sig-line{font-family:'Fraunces',serif;font-weight:600;font-size:0.95rem;color:var(--ink);}
+  .cert-sig-sub{font-family:'Courier Prime',monospace;font-size:10px;color:var(--ink-dim);margin-top:3px;}
+  .cert-stamp{
+    display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--red);
+    border:2px dashed var(--red);border-radius:50%;width:56px;height:56px;justify-content:center;
+    font-size:18px;transform:rotate(-8deg);
+  }
+  .cert-stamp span{font-family:'Courier Prime',monospace;font-size:7px;text-transform:uppercase;letter-spacing:0.05em;}
+
+  /* journey track — envelope travels down as you scroll */
+  .journey-track{
+    position:fixed;left:12px;top:90px;bottom:90px;width:2px;z-index:16;
+    background:repeating-linear-gradient(var(--line-strong) 0 4px, transparent 4px 8px);
+    pointer-events:none;
+  }
+  .journey-fill{position:absolute;top:0;left:0;width:100%;background:var(--red);height:0%;}
+  .journey-envelope{
+    position:absolute;left:50%;top:0%;transform:translate(-50%,-50%);
+    font-size:15px;filter:drop-shadow(0 2px 3px rgba(36,34,54,0.4));
+  }
+  @media(max-width:560px){.journey-track{left:6px;}.journey-envelope{font-size:12px;}}
+
+  /* ambient dust motes */
+  .motes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .mote{position:absolute;bottom:-10px;border-radius:50%;background:var(--gold);opacity:0;animation:moteRise linear infinite;}
+  @keyframes moteRise{
+    0%{opacity:0;transform:translateY(0) translateX(0);}
+    10%{opacity:0.35;}
+    90%{opacity:0.15;}
+    100%{opacity:0;transform:translateY(-110vh) translateX(30px);}
+  }
+
+  @media(prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}}
+    padding:26px 32px;border-top:1px dashed var(--line-strong);
+    font-family:'Courier Prime',monospace;font-size:11px;color:var(--ink-dim);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;max-width:1180px;margin:0 auto;
+    position:relative;z-index:1;
+  }
+
+  @media(max-width:760px){
+    .route{gap:18px;padding:48px 0;}
+    .route-rail{position:static;flex-direction:row;flex:none;}
+    .route-thread{display:none;}
+    .demo-controls{flex-direction:column;align-items:stretch;}
+  }
+  @media(prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}}
+
+  /* ---------- PASSPORT STAMP COLLECTOR ---------- */
+  #passport{position:fixed;right:18px;bottom:18px;z-index:20;font-family:'Courier Prime',monospace;}
+  .passport-bar{
+    display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--card);
+    border:none;border-radius:30px;padding:10px 16px;font-family:'Courier Prime',monospace;
+    font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 10px 24px -10px rgba(36,34,54,0.5);
+  }
+  .passport-bar .p-glyph{font-size:14px;}
+  .passport-bar .p-count{color:var(--gold);}
+  .passport-page{
+    position:absolute;bottom:52px;right:0;width:220px;background:var(--card);
+    border:1.5px solid var(--line-strong);border-radius:6px;padding:14px;
+    box-shadow:0 20px 50px -16px rgba(36,34,54,0.5);
+    opacity:0;transform:translateY(10px) scale(0.96);pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  #passport.open .passport-page{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+  .p-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-dim);margin-bottom:10px;}
+  .p-stamps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .p-stamp{
+    aspect-ratio:1;border-radius:50%;border:2px dashed var(--line-strong);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+    color:var(--line-strong);transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .p-stamp.got{border-style:solid;border-color:var(--red);color:var(--red);transform:rotate(-8deg) scale(1.05);background:var(--red-dim);}
+  #passport.complete .passport-bar{background:var(--red);}
+  @media(max-width:640px){#passport{right:10px;bottom:10px;}.passport-page{width:190px;}}
+</style>
+</head>
+<body>
+<div class="airmail-trim"></div>
+<div class="grain"></div>
+<div class="motes" id="motes"></div>
+<div class="journey-track">
+  <div class="journey-fill" id="journeyFill"></div>
+  <div class="journey-envelope" id="journeyEnvelope">✉</div>
+</div>
+
+<header class="top">
+  <div class="brand">HOW NETWORKS WORK</div>
+  <div>Motaz Elmashaleh · The Hashemite University</div>
+</header>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="stamp">
+      <div class="fly">Par Réseau</div>
+      <div class="glyph">✉</div>
+      <div class="val">NET · 1ST CLASS</div>
+    </div>
+    <div class="hero-eyebrow">A live, interactive field guide</div>
+    <h1>How devices actually<br><em>talk</em> to each other.</h1>
+    <p class="sub">Two machines that have never met, don't speak the same language, and sit thousands of miles apart just had a full conversation — in milliseconds, without a single mistake. Here's the script they follow, told the way a postal system would tell it.</p>
+    <div class="byline"><b>Motaz Elmashaleh</b> · The Hashemite University · Computer Engineering</div>
+
+    <!-- SIGNATURE INTERACTIVE DEMO -->
+    <div class="demo-shell">
+      <div class="demo-titlebar">
+        <h3>The Post Office — send a real message</h3>
+        <span class="hint">packets · routing · receipts, live</span>
+      </div>
+      <div class="demo-controls">
+        <input type="text" id="msgInput" maxlength="42" value="Hey, are we still on for Saturday?">
+        <label class="checkbox-row"><input type="checkbox" id="lossToggle"> simulate a lost packet</label>
+        <button class="send-btn" id="sendBtn">Post it →</button>
+      </div>
+      <div class="demo-stage" id="stage">
+        <div class="node endpoint" style="left:6%;top:50%"><span class="dot"></span>You</div>
+        <div class="node router" data-id="r1" style="left:28%;top:22%"><span class="dot"></span>office A</div>
+        <div class="node router" data-id="r2" style="left:50%;top:76%"><span class="dot"></span>office B</div>
+        <div class="node router" data-id="r3" style="left:72%;top:28%"><span class="dot"></span>office C</div>
+        <div class="node endpoint" style="left:94%;top:50%"><span class="dot"></span>Friend</div>
+      </div>
+      <div class="demo-log" id="log"><div class="info">// waiting for a message to send…</div></div>
+      <div class="demo-result" id="result">
+        <div class="stampmark" id="stampmark">SENT<br>OK</div>
+        <span class="msg" id="resultMsg">Nothing posted yet — write a message above.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 -->
+  <section class="route" data-n="01">
+    <div class="route-rail"><div class="route-num">01</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">The basic question</span>
+          <h2>What has to be true for a message to survive the trip?</h2>
+          <p>A network is just a group of devices that can exchange data. Two laptops on a cable — a network. Your phone and a billion other devices on the internet — also a network, just a much bigger one. What should sound impossible is that it works <b>perfectly, in milliseconds, between machines that have never met.</b></p>
+          <p>Computers don't really "talk." They follow a script so rigid that two devices built decades apart, by companies that never spoke to each other, still understand one another. Strip away the jargon, and any conversation — human or machine — needs exactly four things:</p>
+        </div>
+        <div class="col-visual">
+          <ul class="checklist">
+            <li><span class="n">01</span> Someone to send the message</li>
+            <li><span class="n">02</span> Someone to receive it</li>
+            <li><span class="n">03</span> An address that says exactly where it's going</li>
+            <li><span class="n">04</span> A way to know it actually arrived</li>
+          </ul>
+          <blockquote>Everything else in networking — IP, MAC, routers, TCP — is just a more disciplined version of something you already do every time you mail a letter.</blockquote>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="route" data-n="02">
+    <div class="route-rail"><div class="route-num">02</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">The mail analogy</span>
+          <h2>You already know this system. You've used it your whole life.</h2>
+          <p>To send a friend a letter you need an envelope with something written inside, your friend's address in a format the postal system understands, a mailbox to drop it in, and — if it matters — a tracking number so you know it arrived instead of vanishing.</p>
+          <p>That's four things again, in disguise. Computers do exactly this, billions of times a second — they just call the pieces different names.</p>
+        </div>
+        <div class="col-visual">
+          <div class="compare">
+            <div class="card">
+              <h4>Sending a letter</h4>
+              <ul>
+                <li>Envelope with a message inside</li>
+                <li>A clear street address</li>
+                <li>Trucks & sorting centers you never see</li>
+                <li>A tracking number, if it matters</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>Sending data</h4>
+              <ul>
+                <li>A packet with your data inside</li>
+                <li>An IP address</li>
+                <li>Routers you never see</li>
+                <li>A delivery receipt, always</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="route" data-n="03">
+    <div class="route-rail"><div class="route-num">03</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">The address problem</span>
+          <h2>Every device carries two different answers at once.</h2>
+          <p>The <b>IP address</b> is where you live <em>right now</em> — assigned by whichever network you're on, and it changes the moment you switch networks. The <b>MAC address</b> is who you are, stamped into the hardware at the factory, like a passport photo. It never changes, no matter which Wi-Fi you join.</p>
+          <p>Try it on the right: move to a new address and watch which one actually changes.</p>
+          <blockquote>The sticky-note address label gets swapped every time you move. The passport photo inside never does — it was never the postal system's to change in the first place.</blockquote>
+        </div>
+        <div class="col-visual">
+          <div class="addr-demo">
+            <div class="addr-cards">
+              <div class="addr-card passport" id="macCard">
+                <div class="addr-label">MAC address <span class="tag gold">passport · permanent</span></div>
+                <div class="addr-value" id="macVal">3C:A2:F9:11:7B:04</div>
+              </div>
+              <div class="addr-card label" id="ipCard">
+                <div class="addr-label">IP address <span class="tag red">mailing label · temporary</span></div>
+                <div class="addr-value" id="ipVal">192.168.1.42</div>
+              </div>
+            </div>
+            <button id="switchNetBtn">Move to a new address →</button>
+            <div class="addr-log" id="addrLog"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="route" data-n="04">
+    <div class="route-rail"><div class="route-num">04</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">The path nobody plans</span>
+          <h2>No single office knows the whole journey.</h2>
+          <p>Every hop just asks one question: <em>"Based on the address on this packet, where's the next best stop to get it closer to home?"</em> — hands it off, and lets the next stop decide. There is no master map of the internet.</p>
+          <p><b>Try it yourself:</b> tap offices below, in any order, to build your own route from you to your friend. It doesn't matter which one you pick — the letter still gets there.</p>
+        </div>
+        <div class="col-visual">
+          <div class="fig">
+            <div class="flight-map" id="routeMap">
+              <svg viewBox="0 0 400 150" preserveAspectRatio="none"><g id="routeLines"></g></svg>
+              <div class="stop start" data-id="you" style="left:5%;top:50%"><span class="dot"></span>you</div>
+              <div class="stop pick" data-id="a" style="left:30%;top:20%"><span class="dot"></span>office A</div>
+              <div class="stop pick" data-id="b" style="left:50%;top:78%"><span class="dot"></span>office B</div>
+              <div class="stop pick" data-id="c" style="left:70%;top:24%"><span class="dot"></span>office C</div>
+              <div class="stop end" data-id="friend" style="left:95%;top:50%"><span class="dot"></span>friend</div>
+            </div>
+            <div class="route-controls">
+              <button id="routeSendBtn" disabled>Send along your route →</button>
+              <button id="routeResetBtn" class="ghost">Reset</button>
+            </div>
+            <div class="route-caption" id="routeCaption">Tap one or more offices, then send the letter.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="route" data-n="05">
+    <div class="route-rail"><div class="route-num">05</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">Why your message gets torn apart</span>
+          <h2>A giant, unbroken message is fragile. A thousand small ones aren't.</h2>
+          <p>Send a photo, and before it leaves your device it's torn into packets — each one labeled with which message it belongs to and where it falls in the sequence. They don't even have to take the same road, and they don't even have to arrive in order.</p>
+          <blockquote>It's less like mailing one heavy envelope, and more like tearing a letter into numbered strips and trusting the system to deliver every one — so you can tape it back together exactly as it was written.</blockquote>
+          <p class="hint-text" id="fragHint">Flip each strip below — in any order you like.</p>
+        </div>
+        <div class="col-visual">
+          <div class="fig">
+            <div class="fragments" id="fragments">
+              <div class="frag" data-i="0"><div class="frag-inner"><div class="frag-front">PIECE 1 OF 5</div><div class="frag-back">EVERY</div></div></div>
+              <div class="frag" data-i="1"><div class="frag-inner"><div class="frag-front">PIECE 2 OF 5</div><div class="frag-back">BYTE</div></div></div>
+              <div class="frag" data-i="2"><div class="frag-inner"><div class="frag-front">PIECE 3 OF 5</div><div class="frag-back">FINDS</div></div></div>
+              <div class="frag" data-i="3"><div class="frag-inner"><div class="frag-front">PIECE 4 OF 5</div><div class="frag-back">ITS WAY</div></div></div>
+              <div class="frag" data-i="4"><div class="frag-inner"><div class="frag-front">PIECE 5 OF 5</div><div class="frag-back">HOME</div></div></div>
+            </div>
+            <div class="frag-result" id="fragResult"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="route" data-n="06">
+    <div class="route-rail"><div class="route-num">06</div><div class="route-thread"></div></div>
+    <div class="route-body">
+      <div class="route-grid">
+        <div class="col-text">
+          <span class="eyebrow">The receipt nobody asked for</span>
+          <h2>Nothing is ever assumed delivered until someone says so.</h2>
+          <p>Every packet gets a receipt. If a confirmation doesn't arrive in a fraction of a second, the sender doesn't shrug — it resends the exact same packet, because a missing receipt could mean a missing piece. This relentless bookkeeping is, in essence, what TCP does.</p>
+        </div>
+        <div class="col-visual">
+          <div class="fig">
+            <div class="receipt-diagram">
+              <div class="who">You</div>
+              <div class="arrows">
+                <div class="top">packet →</div>
+                <div class="bottom">← "got it"</div>
+              </div>
+              <div class="who">Friend</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 / closing -->
+  <section class="closing" data-n="07">
+    <p class="quote">"The internet isn't one long, fragile thread between two machines. It's <em>millions of small, independently verified promises</em>, kept all at once."</p>
+    <p class="final">Somewhere right now, a message just got torn apart, sent in pieces, and rebuilt perfectly — and it has no idea you'll never think about it again.</p>
+    <div class="seal" id="seal" title="Break the seal">M</div>
+    <p class="seal-hint" id="sealHint">break the seal</p>
+
+    <div class="certificate" id="certificate">
+      <div class="cert-inner">
+        <div class="cert-ribbon-tail left"></div>
+        <div class="cert-ribbon-tail right"></div>
+        <div class="cert-eyebrow">✦ Certificate of Understanding ✦</div>
+        <div class="cert-name" id="certName" contenteditable="true" spellcheck="false">Click to add your name</div>
+        <div class="cert-body">has successfully traced a message from sender to receiver, across four impossible layers of trust — and understood exactly why it never fails.</div>
+        <div class="cert-footer">
+          <div class="cert-sig">
+            <div class="cert-sig-line">How Networks Work</div>
+            <div class="cert-sig-sub">Motaz Elmashaleh · The Hashemite University</div>
+          </div>
+          <div class="cert-stamp">✉<span>verified</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="passport" id="passport">
+  <button class="passport-bar" id="passportBar">
+    <span class="p-glyph">🛂</span>
+    <span class="p-label">Passport</span>
+    <span class="p-count" id="pCount">0/7</span>
+  </button>
+  <div class="passport-page" id="passportPage">
+    <div class="p-title">Sections visited</div>
+    <div class="p-stamps">
+      <div class="p-stamp" data-n="01">01</div>
+      <div class="p-stamp" data-n="02">02</div>
+      <div class="p-stamp" data-n="03">03</div>
+      <div class="p-stamp" data-n="04">04</div>
+      <div class="p-stamp" data-n="05">05</div>
+      <div class="p-stamp" data-n="06">06</div>
+      <div class="p-stamp" data-n="07">07</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>How Networks Work — Motaz Elmashaleh, The Hashemite University</div>
+  <div>Computer Engineering</div>
+</footer>
+
+<script>
+(function(){
+  // scroll reveal + active rail
+  const bodies = document.querySelectorAll('.route-body');
+  const passport = document.getElementById('passport');
+  const pCount = document.getElementById('pCount');
+  const collected = new Set();
+
+  function collectStamp(n){
+    if(collected.has(n)) return;
+    collected.add(n);
+    const el = document.querySelector('.p-stamp[data-n="'+n+'"]');
+    if(el) el.classList.add('got');
+    pCount.textContent = collected.size+'/7';
+    if(collected.size===7) passport.classList.add('complete');
+  }
+
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        const parent = e.target.closest('.route,.closing');
+        if(parent){
+          parent.classList.add('active');
+          const n = parent.getAttribute('data-n');
+          if(n) collectStamp(n);
+        }
+      }
+    });
+  },{threshold:0.25});
+  bodies.forEach(b=>obs.observe(b));
+  const closingSection = document.querySelector('.closing');
+  if(closingSection) obs.observe(closingSection);
+
+  const passportBar = document.getElementById('passportBar');
+  passportBar.addEventListener('click', ()=> passport.classList.toggle('open'));
+  document.addEventListener('click', (e)=>{
+    if(!passport.contains(e.target)) passport.classList.remove('open');
+  });
+
+  // ---------- post office demo ----------
+  const stage = document.getElementById('stage');
+  const sendBtn = document.getElementById('sendBtn');
+  const msgInput = document.getElementById('msgInput');
+  const lossToggle = document.getElementById('lossToggle');
+  const logEl = document.getElementById('log');
+  const resultEl = document.getElementById('result');
+  const resultMsg = document.getElementById('resultMsg');
+  const stampmark = document.getElementById('stampmark');
+
+  const NODES = {
+    sender:{x:6,y:50}, r1:{x:28,y:22}, r2:{x:50,y:76}, r3:{x:72,y:28}, receiver:{x:94,y:50}
+  };
+  const LANES = [
+    ['sender','r1','r3','receiver'],
+    ['sender','r2','receiver'],
+    ['sender','r1','r2','r3','receiver'],
+    ['sender','r3','receiver']
+  ];
+
+  function log(text, cls){
+    const d = document.createElement('div');
+    if(cls) d.className = cls;
+    d.textContent = text;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function chunkMessage(msg){
+    const size = Math.max(3, Math.ceil(msg.length/6));
+    const chunks = [];
+    for(let i=0;i<msg.length;i+=size) chunks.push(msg.slice(i,i+size));
+    return chunks;
+  }
+
+  function animatePacket(chunk,index,lane,onDone){
+    const pkt = document.createElement('div');
+    pkt.className = 'packet';
+    pkt.textContent = '#'+(index+1);
+    stage.appendChild(pkt);
+
+    const waypoints = lane.map(id=>NODES[id]);
+    const segMs = 550 + Math.random()*150;
+    let seg = 0, start = null;
+
+    function frame(ts){
+      if(!start) start = ts;
+      const t = Math.min(1,(ts-start)/segMs);
+      const a = waypoints[seg], b = waypoints[seg+1];
+      pkt.style.left = (a.x + (b.x-a.x)*t)+'%';
+      pkt.style.top = (a.y + (b.y-a.y)*t)+'%';
+      if(t>=1){
+        if(seg+1 < waypoints.length-1){
+          const nodeId = lane[seg+1];
+          const nodeEl = stage.querySelector('[data-id="'+nodeId+'"]');
+          if(nodeEl){ nodeEl.classList.add('pulse'); setTimeout(()=>nodeEl.classList.remove('pulse'),500); }
+        }
+        seg++; start = null;
+        if(seg >= waypoints.length-1){ onDone(pkt); return; }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function runDemo(){
+    const raw = msgInput.value.trim() || 'Hello there';
+    const simulateLoss = lossToggle.checked;
+    logEl.innerHTML = '';
+    resultEl.classList.remove('delivered');
+    resultMsg.textContent = 'Posting…';
+    stage.querySelectorAll('.packet').forEach(p=>p.remove());
+    sendBtn.disabled = true;
+
+    const chunks = chunkMessage(raw);
+    log('tearing the message into '+chunks.length+' pieces…','info');
+
+    const arrived = new Array(chunks.length).fill(null);
+    let doneCount = 0;
+    const lossIndex = simulateLoss ? Math.floor(Math.random()*chunks.length) : -1;
+    let lossHandled = false;
+
+    chunks.forEach((chunk,i)=>{
+      const lane = LANES[i % LANES.length];
+      setTimeout(()=>{
+        log('piece #'+(i+1)+' posted — routed via '+lane.slice(1,-1).join(' → '));
+        animatePacket(chunk,i,lane,(pktEl)=>{
+          if(i === lossIndex && !lossHandled){
+            lossHandled = true;
+            pktEl.classList.add('lost');
+            log('no receipt for piece #'+(i+1)+' — returned to sender, resending…','warn');
+            setTimeout(()=>{
+              pktEl.remove();
+              animatePacket(chunk,i,lane,(pktEl2)=>{
+                pktEl2.classList.add('acked');
+                log('piece #'+(i+1)+' delivered on retry ✓','ok');
+                finishPacket(i,chunk);
+              });
+            },700);
+          } else {
+            pktEl.classList.add('acked');
+            log('piece #'+(i+1)+' delivered ✓','ok');
+            finishPacket(i,chunk);
+          }
+        });
+      }, i*260);
+    });
+
+    function finishPacket(i,chunk){
+      arrived[i] = chunk;
+      doneCount++;
+      if(doneCount === chunks.length){
+        setTimeout(()=>{
+          const full = arrived.join('');
+          resultEl.classList.add('delivered');
+          resultMsg.innerHTML = 'Reassembled at the destination, in the right order: <b>"'+full+'"</b>';
+          log('all pieces accounted for — letter reassembled and sealed.','ok');
+          sendBtn.disabled = false;
+        }, 450);
+      }
+    }
+  }
+
+  sendBtn.addEventListener('click', runDemo);
+  msgInput.addEventListener('keydown', e=>{ if(e.key==='Enter') runDemo(); });
+
+  // ---------- passport vs mailing label demo ----------
+  const ipVal = document.getElementById('ipVal');
+  const ipCard = document.getElementById('ipCard');
+  const macCard = document.getElementById('macCard');
+  const switchBtn = document.getElementById('switchNetBtn');
+  const addrLog = document.getElementById('addrLog');
+  const places = ['Coffee Shop Wi-Fi','Campus Network','Airport Lounge','Library Guest','Neighbor\'s Hotspot'];
+
+  function randomIP(){
+    return [192, Math.floor(Math.random()*254)+1, Math.floor(Math.random()*254)+1, Math.floor(Math.random()*254)+1].join('.');
+  }
+
+  switchBtn.addEventListener('click', ()=>{
+    const place = places[Math.floor(Math.random()*places.length)];
+    ipVal.textContent = randomIP();
+    ipCard.classList.add('flash');
+    macCard.classList.add('passport-flash');
+    addrLog.textContent = 'Moved to "'+place+'" — new mailing label issued. Passport photo unchanged.';
+    setTimeout(()=>{ ipCard.classList.remove('flash'); macCard.classList.remove('passport-flash'); }, 700);
+  });
+
+  // ---------- section 04: build-your-own-route game ----------
+  const routeMap = document.getElementById('routeMap');
+  const routeSendBtn = document.getElementById('routeSendBtn');
+  const routeResetBtn = document.getElementById('routeResetBtn');
+  const routeCaption = document.getElementById('routeCaption');
+  const routeLines = document.getElementById('routeLines');
+  let chosenStops = [];
+
+  const STOP_COORDS = {}; // percentage coords keyed by data-id
+  routeMap.querySelectorAll('.stop').forEach(el=>{
+    STOP_COORDS[el.dataset.id] = {x:parseFloat(el.style.left), y:parseFloat(el.style.top)};
+  });
+
+  function drawRouteLines(){
+    routeLines.innerHTML = '';
+    const seq = ['you', ...chosenStops, 'friend'];
+    for(let i=0;i<seq.length-1;i++){
+      const a = STOP_COORDS[seq[i]], b = STOP_COORDS[seq[i+1]];
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', a.x*4); line.setAttribute('y1', a.y*1.5);
+      line.setAttribute('x2', b.x*4); line.setAttribute('y2', b.y*1.5);
+      line.setAttribute('stroke', 'var(--red)');
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '5 6');
+      routeLines.appendChild(line);
+    }
+  }
+
+  routeMap.querySelectorAll('.stop.pick').forEach(el=>{
+    el.innerHTML += '<span class="order"></span>';
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.id;
+      const idx = chosenStops.indexOf(id);
+      if(idx>-1){
+        chosenStops.splice(idx,1);
+        el.classList.remove('chosen');
+      } else {
+        chosenStops.push(id);
+        el.classList.add('chosen');
+      }
+      routeMap.querySelectorAll('.stop.pick.chosen').forEach((s,i)=>{
+        s.querySelector('.order').textContent = i+1;
+      });
+      drawRouteLines();
+      routeSendBtn.disabled = false;
+      routeCaption.textContent = chosenStops.length
+        ? 'Route: you → '+chosenStops.join(' → ')+' → friend'
+        : 'Tap one or more offices, then send the letter.';
+    });
+  });
+
+  routeResetBtn.addEventListener('click', ()=>{
+    chosenStops = [];
+    routeMap.querySelectorAll('.stop.pick.chosen').forEach(s=>s.classList.remove('chosen'));
+    routeLines.innerHTML = '';
+    routeSendBtn.disabled = true;
+    routeCaption.textContent = 'Tap one or more offices, then send the letter.';
+    routeMap.querySelectorAll('.route-letter').forEach(l=>l.remove());
+  });
+
+  routeSendBtn.addEventListener('click', ()=>{
+    routeSendBtn.disabled = true;
+    const seq = ['you', ...chosenStops, 'friend'].map(id=>STOP_COORDS[id]);
+    const letter = document.createElement('div');
+    letter.className = 'route-letter';
+    letter.textContent = '✉';
+    letter.style.left = seq[0].x+'%';
+    letter.style.top = seq[0].y+'%';
+    routeMap.appendChild(letter);
+    let seg = 0, start = null;
+    const segMs = 500;
+    function frame(ts){
+      if(!start) start = ts;
+      const t = Math.min(1,(ts-start)/segMs);
+      const a = seq[seg], b = seq[seg+1];
+      letter.style.left = (a.x+(b.x-a.x)*t)+'%';
+      letter.style.top = (a.y+(b.y-a.y)*t)+'%';
+      if(t>=1){
+        seg++; start=null;
+        if(seg>=seq.length-1){
+          routeCaption.textContent = 'Delivered! It didn\'t matter which offices you picked — each one just had to know the next step.';
+          routeSendBtn.disabled = false;
+          return;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  });
+
+  // ---------- section 05: flip-card fragments ----------
+  const fragEls = document.querySelectorAll('#fragments .frag');
+  const fragResult = document.getElementById('fragResult');
+  const fragHint = document.getElementById('fragHint');
+  const flipped = new Set();
+  const PIECES = ['EVERY','BYTE','FINDS','ITS WAY','HOME'];
+
+  fragEls.forEach(el=>{
+    el.addEventListener('click', ()=>{
+      el.classList.toggle('flipped');
+      const i = el.dataset.i;
+      if(el.classList.contains('flipped')) flipped.add(i); else flipped.delete(i);
+      if(flipped.size === fragEls.length){
+        fragResult.textContent = '"'+PIECES.join(' ')+'" — reassembled correctly, no matter which order you flipped them in.';
+        fragResult.classList.add('show');
+        fragHint.textContent = 'All pieces flipped — the order you clicked them in never mattered.';
+      } else {
+        fragResult.classList.remove('show');
+        fragHint.textContent = 'Flip each strip below — in any order you like.';
+      }
+    });
+  });
+
+  // ---------- journey track: the envelope travels as you scroll ----------
+  const journeyFill = document.getElementById('journeyFill');
+  const journeyEnvelope = document.getElementById('journeyEnvelope');
+  let ticking = false;
+  function updateJourney(){
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    journeyFill.style.height = (pct*100)+'%';
+    journeyEnvelope.style.top = (pct*100)+'%';
+    ticking = false;
+  }
+  window.addEventListener('scroll', ()=>{
+    if(!ticking){ requestAnimationFrame(updateJourney); ticking = true; }
+  });
+  updateJourney();
+
+  // ---------- ambient dust motes ----------
+  const motesEl = document.getElementById('motes');
+  const MOTE_COUNT = 14;
+  for(let i=0;i<MOTE_COUNT;i++){
+    const m = document.createElement('div');
+    m.className = 'mote';
+    const size = 2 + Math.random()*3;
+    m.style.width = size+'px';
+    m.style.height = size+'px';
+    m.style.left = (Math.random()*100)+'%';
+    m.style.animationDuration = (14 + Math.random()*16)+'s';
+    m.style.animationDelay = (Math.random()*20)+'s';
+    motesEl.appendChild(m);
+  }
+
+  // ---------- wax seal → certificate ----------
+  const seal = document.getElementById('seal');
+  const sealHint = document.getElementById('sealHint');
+  const certificate = document.getElementById('certificate');
+  const certName = document.getElementById('certName');
+  let sealBroken = false;
+
+  seal.addEventListener('click', ()=>{
+    if(sealBroken) return;
+    sealBroken = true;
+    seal.classList.add('cracked');
+    sealHint.classList.add('hide');
+    setTimeout(()=>{
+      certificate.classList.add('show');
+      certName.focus();
+    }, 420);
+  });
+
+  certName.addEventListener('focus', ()=>{
+    if(certName.textContent.trim() === 'Click to add your name') certName.textContent = '';
+  });
+  certName.addEventListener('blur', ()=>{
+    if(certName.textContent.trim() === '') certName.textContent = 'Click to add your name';
+  });
+  certName.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); certName.blur(); }
+  });
+})();
+</script>
+</body>
+</html>
